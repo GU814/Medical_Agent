@@ -1,0 +1,20 @@
+.empty-login { text-align: center; padding: 100rpx 40rpx; margin-top: 120rpx; }
+.empty-login .btn-primary { margin-top: 40rpx; }
+.big-icon { font-size: 88rpx; text-align: center; margin-bottom: 20rpx; }
+
+.seg { display: flex; margin: 24rpx 0 8rpx; background: #ecefe9; border-radius: 999rpx; padding: 6rpx; }
+.seg-item { flex: 1; text-align: center; font-size: 26rpx; padding: 14rpx 0;
+  border-radius: 999rpx; color: #5c6470; }
+.seg-item.on { background: #fff; color: #2f8f7f; font-weight: 600; }
+
+.photo-box { border: 2rpx dashed #c4cdd8; border-radius: 20rpx; min-height: 340rpx;
+  display: flex; align-items: center; justify-content: center; margin-top: 24rpx;
+  background: #fafbfc; overflow: hidden; }
+.preview { width: 100%; height: 420rpx; border-radius: 16rpx; }
+.photo-placeholder { text-align: center; padding: 60rpx 0; }
+.actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.actions .btn-primary { flex: 1; }
+
+.result.retake { border-color: #f0c36d; background: #fffaf0; }
+.result-text { font-size: 27rpx; line-height: 1.8; white-space: pre-wrap; }
+.disclaimer { margin-top: 16rpx; }

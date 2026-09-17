@@ -1,0 +1,108 @@
+/* 全局样式 · 暖色医疗品牌（去 AI 化：松绿 + 陶土 + 暖纸底） */
+page {
+  background: #f6f4ef;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 28rpx;
+  color: #1f2a28;
+  line-height: 1.6;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin: 20rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(47, 143, 127, 0.06);
+}
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  color: #1f2a28;
+}
+.card-title .more {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #2f8f7f;
+  font-weight: 400;
+}
+.hint { color: #8a958f; font-size: 24rpx; line-height: 1.7; }
+.input {
+  background: #f4f2ec;
+  border-radius: 14rpx;
+  padding: 18rpx 22rpx;
+  font-size: 28rpx;
+  color: #1f2a28;
+}
+.btn-primary {
+  background: #2f8f7f;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  padding: 8rpx 0;
+  line-height: 2.4;
+}
+.btn-primary::after { border: none; }
+.btn-primary[disabled] { background: #b7cfc8; color: #fff; }
+.btn-ghost {
+  background: #fff;
+  color: #2f8f7f;
+  border: 1rpx solid #2f8f7f;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  line-height: 2.4;
+}
+.btn-ghost::after { border: none; }
+.btn-clay {
+  background: #c47a4e;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  line-height: 2.4;
+}
+.btn-clay::after { border: none; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  background: #e7f1ee;
+  color: #2f8f7f;
+  font-size: 22rpx;
+  border-radius: 999rpx;
+  padding: 6rpx 18rpx;
+}
+.warn-box {
+  background: #fdf3ea;
+  border: 1rpx solid #f0d8bf;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-top: 18rpx;
+}
+.warn-box .wb-title {
+  color: #c47a4e;
+  font-weight: 600;
+  font-size: 26rpx;
+  margin-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.warn-box .wb-text {
+  font-size: 26rpx;
+  line-height: 1.8;
+  color: #6b4a35;
+  white-space: pre-wrap;
+}
+.empty { text-align: center; padding: 80rpx 40rpx; }
+.empty .big-icon { font-size: 92rpx; }
+.footer {
+  text-align: center;
+  color: #a7ada6;
+  font-size: 22rpx;
+  margin: 30rpx 0 60rpx;
+  line-height: 1.7;
+  padding: 0 40rpx;
+}
+.safe-bottom { padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }

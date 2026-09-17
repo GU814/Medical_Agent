@@ -1,0 +1,62 @@
+# ============================================================
+# 医学问询智能体 配置模板（config.example.yaml）
+#
+# 使用方法：
+#   cp config.example.yaml config.yaml   # Windows: copy config.example.yaml config.yaml
+#   然后填入你自己的 API Key。
+#
+# 说明：
+#   - 所有 Key 留空则运行在受限模式（知识库本地检索可用，
+#     大模型问答/识药不可用）；
+#   - 也可以不改本文件，直接用环境变量注入（优先级更高），
+#     支持 LLM_<PROVIDER>_API_KEY 等，详见 .env.example；
+#   - config.yaml 已被 .gitignore 排除，不会被提交。
+# ============================================================
+
+server:
+  host: "0.0.0.0"
+  port: 8600
+  # 前端地址（CORS 白名单）；也可用环境变量 CORS_ORIGINS（逗号分隔）
+  cors_origins:
+    - "http://localhost:8600"
+    - "http://127.0.0.1:8600"
+
+security:
+  # JWT 签名密钥；留空则首次启动自动生成并写入 data/secret.key
+  # ⚠️ data/secret.key 一旦生成请妥善备份，丢失将导致历史加密数据无法解密
+  jwt_secret: ""
+  # 数据加密主密钥（Fernet）；留空则自动生成
+  fernet_key: ""
+
+# ---------- 大模型接入 ----------
+# 支持的 provider: zhipu / deepseek / openai（OpenAI 兼容端点均可挂到 openai 下）
+llm:
+  providers:
+    zhipu:
+      api_key: ""                                    # 智谱开放平台 https://open.bigmodel.cn
+      base_url: "https://open.bigmodel.cn/api/paas/v4"
+      chat_model: "glm-4-flash"
+      vision_model: "glm-4v-flash"                  # 拍照识药用；须为目录内存在的模型名
+      embedding_model: ""                            # 留空走本地 BM25 检索
+    deepseek:
+      api_key: ""                                    # DeepSeek https://platform.deepseek.com
+      base_url: "https://api.deepseek.com"
+      chat_model: "deepseek-chat"
+      vision_model: ""                               # DeepSeek 暂无视觉模型
+      embedding_model: ""
+    # OpenAI 兼容端点（官方或任意中转平台均可）
+    openai:
+      api_key: ""
+      base_url: "https://api.openai.com/v1"
+      chat_model: "gpt-4o-mini"
+      vision_model: "gpt-4o-mini"
+      embedding_model: ""                            # 留空走本地 BM25 检索
+
+  # 默认使用的 provider（前端可随时切换）
+  default_provider: "zhipu"
+
+rag:
+  chunk_size: 500        # 分块字符数
+  chunk_overlap: 80      # 相邻块重叠
+  top_k: 6               # 每次检索召回片段数
+  min_score: 0.05        # 低于该相关度的片段不作为依据

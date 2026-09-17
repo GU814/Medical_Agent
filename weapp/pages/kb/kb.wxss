@@ -1,0 +1,29 @@
+.empty-login { text-align: center; padding: 100rpx 40rpx; margin-top: 120rpx; }
+.empty-login .btn-primary { margin-top: 40rpx; }
+.big-icon { font-size: 88rpx; text-align: center; margin-bottom: 20rpx; }
+
+.upload-btn { margin-top: 24rpx; }
+.tip { margin-top: 14rpx; }
+
+.search-row { display: flex; gap: 14rpx; margin-top: 16rpx; align-items: center; }
+.search-input { flex: 1; }
+.search-btn { flex-shrink: 0; line-height: 2.6; padding: 0 28rpx; }
+.result-item { padding: 18rpx 0; border-bottom: 1rpx solid #f0f1f3; }
+.result-item:last-of-type { border-bottom: none; }
+.result-head { display: flex; justify-content: space-between; align-items: center; }
+.result-doc { font-size: 26rpx; font-weight: 500; }
+.result-score { font-size: 22rpx; color: #2f8f7f; background: #e7f1ee; border-radius: 999rpx; padding: 4rpx 14rpx; }
+.result-snippet { font-size: 25rpx; color: #5c6470; line-height: 1.7; margin-top: 8rpx; }
+.clear-link { margin-top: 16rpx; text-align: right; color: #2f8f7f; }
+
+.empty-doc { text-align: center; padding: 30rpx 10rpx; }
+.empty-doc .big-icon { font-size: 72rpx; }
+
+.doc-item { display: flex; align-items: center; gap: 18rpx; padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f1f3; }
+.doc-item:last-child { border-bottom: none; }
+.doc-icon { font-size: 46rpx; }
+.doc-info { flex: 1; min-width: 0; }
+.doc-name { font-size: 27rpx; font-weight: 500; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.doc-del { color: #d9534f; font-size: 24rpx; padding: 8rpx 16rpx; }

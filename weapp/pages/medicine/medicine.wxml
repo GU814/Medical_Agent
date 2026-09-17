@@ -1,0 +1,56 @@
+<view class="page">
+  <view wx:if="{{!loggedIn}}" class="card empty-login">
+    <view class="big-icon">💊</view>
+    <view class="hint">请先在「我的」页面登录后使用识药功能</view>
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="card-title">💊 拍照 / 拍视频识药</view>
+      <view class="hint">拍下药品包装、说明书或一段用药短视频，帮你识别药名、功效与注意事项，并提示不可混用的药物与潜在风险。请尽量拍清晰、光线充足。</view>
+
+      <!-- 模式切换 -->
+      <view class="seg">
+        <view class="seg-item {{mode === 'image' ? 'on' : ''}}" bindtap="setMode" data-mode="image">📷 拍照片</view>
+        <view class="seg-item {{mode === 'video' ? 'on' : ''}}" bindtap="setMode" data-mode="video">🎬 拍视频</view>
+      </view>
+
+      <!-- 预览 -->
+      <view class="photo-box" bindtap="choose">
+        <image wx:if="{{mode === 'image' && mediaPath}}" class="preview" src="{{mediaPath}}" mode="aspectFit" />
+        <video wx:elif="{{mode === 'video' && mediaPath}}" class="preview" src="{{mediaPath}}" controls="{{false}}" show-center-play-btn="{{false}}" object-fit="contain" />
+        <view wx:else class="photo-placeholder">
+          <view class="big-icon">{{mode === 'video' ? '🎬' : '📷'}}</view>
+          <view class="hint">点击{{mode === 'video' ? '录制或选择短视频' : '拍照或从相册选择'}}</view>
+        </view>
+      </view>
+
+      <view class="actions">
+        <button class="btn-primary" bindtap="analyze" disabled="{{analyzing}}">
+          {{analyzing ? '识别中…' : '开始识别'}}
+        </button>
+        <button wx:if="{{mediaPath}}" class="btn-ghost" bindtap="reset">重新选择</button>
+      </view>
+    </view>
+
+    <!-- 结果 -->
+    <view wx:if="{{result}}" class="card result {{needsRetake ? 'retake' : ''}}">
+      <view class="card-title">{{needsRetake ? '⚠️ 识别提示' : '📋 识别结果'}}</view>
+      <view class="result-text">{{result}}</view>
+
+      <!-- 不可混用药物 -->
+      <view wx:if="{{interactions}}" class="warn-box">
+        <view class="wb-title">⛔ 不可混合使用的药物</view>
+        <view class="wb-text">{{interactions}}</view>
+      </view>
+      <!-- 潜在风险 -->
+      <view wx:if="{{risks}}" class="warn-box">
+        <view class="wb-title">⚠️ 潜在风险</view>
+        <view class="wb-text">{{risks}}</view>
+      </view>
+
+      <view class="hint disclaimer">以上结果仅供参考，具体用药请遵医嘱或咨询药师</view>
+    </view>
+  </block>
+</view>

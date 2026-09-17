@@ -1,0 +1,15 @@
+{
+  "desc": "医学问询智能体小程序（模板：复制为 project.config.json 并填入你的 AppID）",
+  "projectname": "medical-consult-weapp",
+  "appid": "YOUR_APPID_HERE",
+  "compileType": "miniprogram",
+  "libVersion": "3.0.0",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "minifyWXML": true
+  },
+  "condition": {}
+}

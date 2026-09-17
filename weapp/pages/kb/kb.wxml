@@ -1,0 +1,59 @@
+<view class="page">
+  <view wx:if="{{!loggedIn}}" class="card empty-login">
+    <view class="big-icon">📚</view>
+    <view class="hint">请先在「我的」页面登录后管理知识库</view>
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="card-title">📚 我的医学知识库</view>
+      <view class="hint">上传 PDF / DOCX / MD / TXT（≤20MB），自动分块并建立检索索引；问诊回答会引用文档内容作为依据。</view>
+      <button class="btn-primary upload-btn" bindtap="chooseFile" disabled="{{uploading}}">
+        {{uploading ? '处理中…' : '＋ 上传文档'}}
+      </button>
+      <view class="hint tip">提示：可先从微信聊天记录里把文档转发给自己，再点上方按钮选择</view>
+    </view>
+
+    <!-- 检索自测 -->
+    <view class="card">
+      <view class="card-title">🔎 检索自测</view>
+      <view class="search-row">
+        <input class="input search-input" value="{{searchQuery}}" bindinput="onSearchInput"
+          placeholder="输入想查询的内容，验证能否被检索到" confirm-type="search" bindconfirm="search" />
+        <button class="btn-ghost search-btn" bindtap="search" disabled="{{searching}}">检索</button>
+      </view>
+      <view wx:if="{{searching}}" class="hint">检索中…</view>
+      <block wx:elif="{{searched}}">
+        <view wx:if="{{!results.length}}" class="hint">未检索到相关内容，可能文档尚未覆盖该主题</view>
+        <view wx:for="{{results}}" wx:key="index" class="result-item">
+          <view class="result-head">
+            <text class="result-doc">📄 {{item.doc_name}}</text>
+            <text class="result-score">匹配度 {{item.score}}</text>
+          </view>
+          <view class="result-snippet">{{item.snippet}}</view>
+        </view>
+        <view class="hint clear-link" bindtap="clearSearch">清空结果</view>
+      </block>
+    </view>
+
+    <!-- 已入库文档 -->
+    <view class="card">
+      <view class="card-title">已入库文档（{{docs.length}}）</view>
+      <view wx:if="{{!docs.length}}" class="empty-doc">
+        <view class="big-icon">🗂</view>
+        <view class="hint">还没有文档。上传后，这里会按时间列出每一份资料，问诊时即可被引用。</view>
+      </view>
+      <view wx:for="{{docs}}" wx:key="id" class="doc-item">
+        <view class="doc-icon">
+          {{item.name.indexOf('.pdf') > -1 ? '📕' : item.name.indexOf('.docx') > -1 ? '📘' : '📄'}}
+        </view>
+        <view class="doc-info">
+          <view class="doc-name">{{item.name}}</view>
+          <view class="hint">{{item.chunk_count}} 个分块 · {{item.size}} 字节</view>
+        </view>
+        <view class="doc-del" bindtap="deleteDoc" data-id="{{item.id}}" data-name="{{item.name}}">删除</view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,137 @@
+<view class="page">
+  <!-- 未登录：登录/注册 -->
+  <view wx:if="{{!loggedIn}}" class="card auth-card">
+    <view class="big-icon">🌿</view>
+    <view class="auth-title">知医 · 你的健康小笔记</view>
+    <view class="auth-tabs">
+      <view class="auth-tab {{mode === 'login' ? 'on' : ''}}" bindtap="setMode" data-mode="login">登录</view>
+      <view class="auth-tab {{mode === 'register' ? 'on' : ''}}" bindtap="setMode" data-mode="register">注册</view>
+    </view>
+    <input class="input" placeholder="用户名（2-32位）" value="{{username}}" bindinput="onUser" />
+    <input class="input" placeholder="密码（至少6位）" password value="{{password}}" bindinput="onPwd" />
+    <button class="btn-primary" bindtap="submitAuth">{{mode === 'login' ? '登录' : '注册并登录'}}</button>
+    <view class="hint auth-tip">每位用户拥有独立加密数据空间，问诊记录与档案严格隔离</view>
+  </view>
+
+  <!-- 已登录 -->
+  <block wx:else>
+    <view class="user-bar card">
+      <view class="user-avatar">{{profile.nickname ? profile.nickname[0] : 'U'}}</view>
+      <view class="user-name">{{profile.nickname || '我'}}的健康档案</view>
+      <view class="logout" bindtap="logout">退出</view>
+    </view>
+
+    <view class="seg">
+      <view class="seg-item {{tab === 'profile' ? 'on' : ''}}" bindtap="setTab" data-tab="profile">健康档案</view>
+      <view class="seg-item {{tab === 'reminders' ? 'on' : ''}}" bindtap="setTab" data-tab="reminders">提醒闹钟</view>
+      <view class="seg-item {{tab === 'reports' ? 'on' : ''}}" bindtap="setTab" data-tab="reports">我的报告</view>
+    </view>
+
+    <!-- 档案 -->
+    <block wx:if="{{tab === 'profile'}}">
+      <view class="card">
+        <view class="card-title">📋 基本健康信息</view>
+        <view wx:for="{{fields}}" wx:key="key" class="form-row">
+          <text class="form-label">{{item.label}}</text>
+          <picker wx:if="{{item.type === 'select'}}" range="{{item.options}}">
+            <view class="input picker-val">{{profile[item.key] || '未设置'}}</view>
+          </picker>
+          <input wx:else class="input" type="{{item.type}}" value="{{profile[item.key]}}"
+            placeholder="未填写" bindinput="onField" data-key="{{item.key}}" />
+        </view>
+        <button class="btn-primary" bindtap="saveProfile">保存档案</button>
+      </view>
+
+      <view class="card">
+        <view class="card-title">🗒 近期健康记录
+          <text class="add-link" bindtap="addRecord">＋ 添加</text>
+        </view>
+        <view wx:if="{{!records.length}}" class="hint">暂无记录，添加症状/用药/体检记录可让问诊与建议更精准</view>
+        <view wx:for="{{records}}" wx:key="id" class="record">
+          <text class="record-type">{{item.type}}</text>
+          <text class="record-content">{{item.content}}</text>
+          <text class="record-date">{{item.date}}</text>
+          <text class="record-del" bindtap="delRecord" data-id="{{item.id}}">✕</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 提醒 -->
+    <block wx:if="{{tab === 'reminders'}}">
+      <view class="card">
+        <view class="card-title">⏰ 新建提醒</view>
+        <input class="input" placeholder="提醒事项，如：服用降压药" value="{{rTitle}}" bindinput="onRTitle" />
+        <view class="r-row">
+          <picker mode="selector" range="{{repeatOptions}}" value="{{rRepeatIndex}}" bindchange="onRRepeat">
+            <view class="input picker-val">{{repeatOptions[rRepeatIndex]}}</view>
+          </picker>
+          <picker mode="time" value="{{rTime}}" bindchange="onRTime">
+            <view class="input picker-val">{{rTime}}</view>
+          </picker>
+          <picker wx:if="{{rRepeatIndex === 1}}" mode="date" value="{{rDate}}" bindchange="onRDate">
+            <view class="input picker-val">{{rDate || '选择日期'}}</view>
+          </picker>
+        </view>
+        <button class="btn-primary" bindtap="addReminder">创建提醒</button>
+      </view>
+
+      <view class="card">
+        <view class="card-title">🔔 我的提醒（{{reminders.length}}）</view>
+        <view wx:if="{{!reminders.length}}" class="hint">暂无提醒</view>
+        <view wx:for="{{reminders}}" wx:key="id" class="reminder {{item.enabled ? '' : 'off'}}">
+          <view class="r-icon">{{item.enabled ? '🔔' : '🔕'}}</view>
+          <view class="r-info">
+            <view class="r-title">{{item.title}}</view>
+            <view class="hint">{{item.repeat === 'daily' ? '每天 ' + item.time : item.time}}</view>
+          </view>
+          <view class="r-time">{{item.time}}</view>
+          <switch checked="{{item.enabled}}" bindchange="toggleReminder" data-id="{{item.id}}" color="#2f8f7f" />
+          <text class="record-del" bindtap="delReminder" data-id="{{item.id}}">🗑</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 我的报告 -->
+    <block wx:if="{{tab === 'reports'}}">
+      <view class="card">
+        <view class="card-title">📁 我的报告（{{reports.length}}）</view>
+        <view wx:if="{{!reports.length}}" class="empty-doc">
+          <view class="big-icon">📭</view>
+          <view class="hint">还没有报告。在「问诊」里对话后点「检查报告」，报告会自动归档到这里，按分类保存。</view>
+        </view>
+        <view wx:for="{{reports}}" wx:key="rid" class="report-item" bindtap="viewReport" data-rid="{{item.rid}}">
+          <view class="report-main">
+            <view class="report-title">{{item.title}}</view>
+            <view class="hint report-meta">{{item.category}} · {{item.summary}}</view>
+          </view>
+          <view class="report-side">
+            <view class="report-date">{{fmt(item.created_at)}}</view>
+            <text class="report-del" catchtap="delReport" data-rid="{{item.rid}}">删除</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </block>
+
+  <!-- 报告详情弹窗 -->
+  <view wx:if="{{reportDetail}}" class="modal" bindtap="closeReport">
+    <view class="modal-card" catchtap="">
+      <view class="modal-title">{{reportDetail.title}}</view>
+      <scroll-view class="modal-body" scroll-y>
+        <view class="r-sec"><view class="r-h">主诉</view><text>{{reportDetail.chief_complaint}}</text></view>
+        <view class="r-sec"><view class="r-h">现病史</view><text>{{reportDetail.present_illness}}</text></view>
+        <view class="r-sec"><view class="r-h">既往史</view><text>{{reportDetail.past_history}}</text></view>
+        <view class="r-sec"><view class="r-h">问诊小结</view><text>{{reportDetail.consult_summary}}</text></view>
+        <view class="r-sec"><view class="r-h">初步分析</view><text>{{reportDetail.preliminary_analysis}}</text></view>
+        <view class="r-sec"><view class="r-h">建议检查</view>
+          <view wx:for="{{reportDetail.suggested_exams}}" wx:key="*this" class="r-li">• {{item}}</view>
+        </view>
+        <view class="r-sec"><view class="r-h">生活建议</view>
+          <view wx:for="{{reportDetail.lifestyle_advice}}" wx:key="*this" class="r-li">• {{item}}</view>
+        </view>
+        <view class="r-warn">⚠️ {{reportDetail.disclaimer}}</view>
+      </scroll-view>
+      <button class="btn-primary" bindtap="closeReport">关闭</button>
+    </view>
+  </view>
+</view>

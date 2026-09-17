@@ -1,0 +1,74 @@
+.auth-card { padding: 60rpx 40rpx; }
+.big-icon { font-size: 88rpx; text-align: center; margin-bottom: 24rpx; }
+.auth-title { text-align: center; font-size: 32rpx; font-weight: 700; color: #1f2a28; margin-bottom: 30rpx; }
+.auth-tabs { display: flex; margin-bottom: 30rpx; border-bottom: 1rpx solid #e5e7eb; }
+.auth-tab { flex: 1; text-align: center; padding: 20rpx; font-size: 28rpx; color: #8a958f; }
+.auth-tab.on { color: #2f8f7f; font-weight: 700; border-bottom: 4rpx solid #2f8f7f; }
+.auth-card .input { margin-bottom: 20rpx; }
+.auth-card .btn-primary { margin-top: 10rpx; }
+.auth-tip { text-align: center; margin-top: 24rpx; }
+
+.user-bar { display: flex; align-items: center; gap: 20rpx; }
+.user-avatar { width: 84rpx; height: 84rpx; border-radius: 20rpx; background: #2f8f7f;
+  color: #fff; font-size: 36rpx; font-weight: 700; display: flex; align-items: center;
+  justify-content: center; }
+.user-name { flex: 1; font-size: 30rpx; font-weight: 600; }
+.logout { color: #d9534f; font-size: 26rpx; }
+
+.seg { display: flex; margin: 0 24rpx; background: #ecefe9; border-radius: 999rpx; padding: 6rpx; }
+.seg-item { flex: 1; text-align: center; font-size: 25rpx; padding: 12rpx 0;
+  border-radius: 999rpx; color: #5c6470; }
+.seg-item.on { background: #fff; color: #2f8f7f; font-weight: 600; }
+
+.form-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 18rpx; }
+.form-label { width: 170rpx; font-size: 26rpx; color: #5c6470; flex-shrink: 0; }
+.form-row .input { flex: 1; }
+.picker-val { color: #1f2a28; }
+.add-link { margin-left: auto; color: #2f8f7f; font-size: 24rpx; font-weight: 400; }
+
+.record { display: flex; align-items: center; gap: 12rpx; padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f1f3; font-size: 25rpx; }
+.record:last-child { border-bottom: none; }
+.record-type { background: #e7f1ee; color: #2f8f7f; border-radius: 6rpx;
+  padding: 2rpx 12rpx; font-size: 22rpx; flex-shrink: 0; }
+.record-content { flex: 1; }
+.record-date { color: #8a958f; font-size: 22rpx; }
+.record-del { color: #8a958f; padding: 4rpx 8rpx; }
+
+.r-row { display: flex; gap: 14rpx; margin: 20rpx 0; }
+.r-row .input { flex: 1; text-align: center; }
+.reminder { display: flex; align-items: center; gap: 14rpx; padding: 18rpx 0;
+  border-bottom: 1rpx solid #f0f1f3; }
+.reminder:last-child { border-bottom: none; }
+.reminder.off { opacity: 0.55; }
+.r-icon { font-size: 40rpx; }
+.r-info { flex: 1; min-width: 0; }
+.r-title { font-size: 27rpx; font-weight: 500; }
+.r-time { font-size: 30rpx; font-weight: 700; color: #2f8f7f; }
+.card .btn-primary { margin-top: 20rpx; }
+
+/* 报告库 */
+.empty-doc { text-align: center; padding: 30rpx 10rpx; }
+.empty-doc .big-icon { font-size: 72rpx; }
+.report-item { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f1f3; }
+.report-item:last-child { border-bottom: none; }
+.report-main { flex: 1; min-width: 0; }
+.report-title { font-size: 28rpx; font-weight: 600; color: #1f2a28; }
+.report-meta { margin-top: 4rpx; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.report-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; flex-shrink: 0; }
+.report-date { font-size: 22rpx; color: #8a958f; }
+.report-del { font-size: 22rpx; color: #d9534f; }
+
+.modal { position: fixed; inset: 0; background: rgba(31, 42, 40, 0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 99; }
+.modal-card { width: 88vw; max-height: 82vh; background: #fff; border-radius: 24rpx;
+  padding: 30rpx; display: flex; flex-direction: column; }
+.modal-title { font-size: 32rpx; font-weight: 700; text-align: center; margin-bottom: 20rpx; }
+.modal-body { max-height: 58vh; margin-bottom: 20rpx; }
+.r-sec { margin-bottom: 18rpx; font-size: 26rpx; line-height: 1.7; }
+.r-h { font-size: 26rpx; color: #2f8f7f; font-weight: 600;
+  border-left: 6rpx solid #2f8f7f; padding-left: 12rpx; margin-bottom: 6rpx; }
+.r-li { font-size: 25rpx; margin: 4rpx 0; }
+.r-warn { font-size: 22rpx; color: #8a958f; margin-top: 10rpx; }

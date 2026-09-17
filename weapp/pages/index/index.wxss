@@ -1,0 +1,27 @@
+.login-card { text-align: center; padding: 90rpx 44rpx; }
+.login-icon { font-size: 92rpx; }
+.login-title { font-size: 36rpx; font-weight: 700; margin: 20rpx 0 14rpx; color: #1f2a28; }
+.login-sub { padding: 0 20rpx; }
+.login-card .btn-primary { margin-top: 44rpx; }
+.login-tip { margin-top: 26rpx; }
+
+.greet-title { font-size: 34rpx; font-weight: 700; color: #1f2a28; }
+
+.quick { display: flex; justify-content: space-around; padding: 34rpx 8rpx; }
+.quick-item { display: flex; flex-direction: column; align-items: center; gap: 12rpx;
+  font-size: 24rpx; color: #5c6470; }
+.quick-icon { width: 96rpx; height: 96rpx; border-radius: 28rpx; display: flex;
+  align-items: center; justify-content: center; font-size: 48rpx; color: #fff; }
+.q-chat { background: #2f8f7f; }
+.q-kb { background: #c47a4e; }
+.q-med { background: #4a7ba6; }
+.q-me { background: #8a7bb0; }
+
+.due-item { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0f1f3; }
+.due-item:last-child { border-bottom: none; }
+.due-time { font-size: 30rpx; font-weight: 700; color: #2f8f7f; }
+.due-title { font-size: 27rpx; }
+
+.sug-item { display: flex; gap: 12rpx; padding: 10rpx 0; font-size: 27rpx; line-height: 1.7; }
+.sug-dot { color: #c47a4e; font-weight: 700; }

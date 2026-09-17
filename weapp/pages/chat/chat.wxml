@@ -1,0 +1,78 @@
+<view class="page">
+  <view wx:if="{{!loggedIn}}" class="card empty-login">
+    <view class="big-icon">🌿</view>
+    <view class="hint">请先在「我的」页面登录后开始问诊</view>
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <!-- 工具栏 -->
+    <view class="toolbar">
+      <picker range="{{providers}}" range-key="label" value="{{providerIndex}}" bindchange="onProviderChange">
+        <view class="model-pill">🤖 {{providers.length ? providers[providerIndex].label : '未配置模型'}} ▾</view>
+      </picker>
+      <view class="tool-actions">
+        <button class="btn-mini-ghost" bindtap="newConv">＋ 新问诊</button>
+        <button class="btn-mini-ghost" bindtap="genReport">📄 检查报告</button>
+      </view>
+    </view>
+
+    <!-- 会话列表（横向滚动） -->
+    <scroll-view wx:if="{{convs.length}}" class="conv-strip" scroll-x>
+      <view wx:for="{{convs}}" wx:key="id"
+        class="conv-chip {{conv && conv.id === item.id ? 'on' : ''}}"
+        bindtap="onConvTap" data-id="{{item.id}}">{{item.title}}</view>
+    </scroll-view>
+
+    <!-- 消息区 -->
+    <scroll-view class="msgs" scroll-y scroll-into-view="{{intoView}}" scroll-with-animation>
+      <view wx:if="{{!messages.length}}" class="welcome">
+        <view class="big-icon">🌿</view>
+        <view class="hint welcome-text">{{welcome}}</view>
+      </view>
+      <view wx:for="{{messages}}" wx:key="index" id="msg-{{index}}" class="msg {{item.role}}">
+        <view class="avatar">{{item.role === 'user' ? '🙂' : '🌿'}}</view>
+        <view class="bubble {{item.role === 'assistant' && sending && index === messages.length - 1 && !item.content ? 'typing' : ''}}">
+          <text user-select>{{item.content || (item.role === 'assistant' ? '' : '')}}</text>
+          <view wx:if="{{item.citations.length}}" class="citations">
+            <view class="ct-title">📚 回答依据</view>
+            <view wx:for="{{item.citations}}" wx:for-item="c" wx:key="index" class="citation">
+              【{{c.doc_name}}-片段{{c.chunk_idx}}】
+            </view>
+          </view>
+        </view>
+      </view>
+      <view id="msg-bottom" style="height: 20rpx;"></view>
+    </scroll-view>
+
+    <!-- 输入区 -->
+    <view class="input-bar safe-bottom">
+      <input class="chat-input" value="{{input}}" bindinput="onInput" bindconfirm="send"
+        placeholder="描述症状，如：最近三天咳嗽、喉咙痛…" confirm-type="send" disabled="{{sending}}" />
+      <button class="send-btn btn-primary" size="mini" bindtap="send" disabled="{{sending || !input}}">发送</button>
+    </view>
+  </block>
+
+  <!-- 报告弹窗 -->
+  <view wx:if="{{showReport}}" class="modal" bindtap="closeReport">
+    <view class="modal-card" catchtap="">
+      <view class="modal-title">病情检查报告单</view>
+      <scroll-view class="modal-body" scroll-y>
+        <view class="r-sec"><view class="r-h">主诉</view><text>{{report.chief_complaint}}</text></view>
+        <view class="r-sec"><view class="r-h">现病史</view><text>{{report.present_illness}}</text></view>
+        <view class="r-sec"><view class="r-h">既往史</view><text>{{report.past_history}}</text></view>
+        <view class="r-sec"><view class="r-h">问诊小结</view><text>{{report.consult_summary}}</text></view>
+        <view class="r-sec"><view class="r-h">初步分析</view><text>{{report.preliminary_analysis}}</text></view>
+        <view class="r-sec"><view class="r-h">建议检查</view>
+          <view wx:for="{{report.suggested_exams}}" wx:key="*this" class="r-li">• {{item}}</view>
+        </view>
+        <view class="r-sec"><view class="r-h">生活建议</view>
+          <view wx:for="{{report.lifestyle_advice}}" wx:key="*this" class="r-li">• {{item}}</view>
+        </view>
+        <view class="r-warn">⚠️ {{report.disclaimer}}</view>
+        <view class="r-saved">📁 本报告已自动存入「我的 → 我的报告」，可随时回看</view>
+      </scroll-view>
+      <button class="btn-primary" bindtap="closeReport">关闭</button>
+    </view>
+  </view>
+</view>

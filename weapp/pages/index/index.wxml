@@ -1,0 +1,55 @@
+<view class="page">
+  <!-- 未登录 -->
+  <view wx:if="{{!user}}" class="card login-card">
+    <view class="login-icon">🌿</view>
+    <view class="login-title">知医 · 你的健康小笔记</view>
+    <view class="hint login-sub">安静地陪你理清身体的信号，把零碎的健康信息慢慢理顺。</view>
+    <button class="btn-primary" bindtap="goLogin">登录 / 注册</button>
+    <view class="hint login-tip">每位用户拥有独立加密空间，问诊与档案数据严格隔离</view>
+  </view>
+
+  <block wx:else>
+    <!-- 问候 -->
+    <view class="greet card">
+      <view class="greet-title">{{greeting}}，{{user.username}} 👋</view>
+      <view class="hint">今天也请温柔地照顾自己</view>
+    </view>
+
+    <!-- 快捷入口 -->
+    <view class="quick card">
+      <view class="quick-item" bindtap="go" data-url="/pages/chat/chat">
+        <view class="quick-icon q-chat">💬</view><text>智能问诊</text>
+      </view>
+      <view class="quick-item" bindtap="go" data-url="/pages/kb/kb">
+        <view class="quick-icon q-kb">📚</view><text>知识库</text>
+      </view>
+      <view class="quick-item" bindtap="go" data-url="/pages/medicine/medicine">
+        <view class="quick-icon q-med">💊</view><text>拍照识药</text>
+      </view>
+      <view class="quick-item" bindtap="go" data-url="/pages/me/me">
+        <view class="quick-icon q-me">📋</view><text>健康档案</text>
+      </view>
+    </view>
+
+    <!-- 今日提醒 -->
+    <view class="card">
+      <view class="card-title">⏰ 今日提醒</view>
+      <view wx:if="{{!todayDue.length}}" class="hint">今天还没有提醒，去「我的 → 提醒闹钟」添加一个吧</view>
+      <view wx:for="{{todayDue}}" wx:key="id" class="due-item">
+        <text class="due-time">{{item.time}}</text>
+        <text class="due-title">{{item.title}}</text>
+      </view>
+    </view>
+
+    <!-- 健康建议 -->
+    <view class="card">
+      <view class="card-title">🌿 今天的轻建议</view>
+      <view wx:if="{{loading && !suggestions.length}}" class="hint">正在为你准备…</view>
+      <view wx:for="{{suggestions}}" wx:key="*this" class="sug-item">
+        <text class="sug-dot">•</text><text>{{item}}</text>
+      </view>
+    </view>
+
+    <view class="footer">本应用输出仅供健康参考，不构成医疗诊断意见；如有紧急情况请及时就医。</view>
+  </block>
+</view>
