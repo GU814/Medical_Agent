@@ -136,6 +136,8 @@ RAG_EMBED_MODEL = _env("RAG_EMBED_MODEL") or RAG_CFG.get("embed_model", "BAAI/bg
 RAG_USE_RERANK = (_env("RAG_USE_RERANK") or str(RAG_CFG.get("use_rerank", True))).lower() in ("1", "true", "yes", "on")
 # 精排候选数（RRF 融合后取前 N 送入 LLM）
 RAG_RERANK_TOP_N = int(_env("RAG_RERANK_TOP_N") or RAG_CFG.get("rerank_top_n", 20))
+# 精排使用的 provider 名；留空则用默认对话 provider（default_provider）
+RAG_RERANK_PROVIDER = _env("RAG_RERANK_PROVIDER") or RAG_CFG.get("rerank_provider", "")
 # RRF 平滑常数
 RAG_RRF_K = int(_env("RAG_RRF_K") or RAG_CFG.get("rrf_k", 60))
 # 向量化批大小

@@ -289,8 +289,11 @@ async def _llm_rerank(query: str, cands: list[dict]) -> Optional[list[tuple[floa
     if not cands:
         return None
     try:
-        from ..llm import get_any_provider
-        prov = get_any_provider(None)
+        from ..llm import get_provider
+        # 精排固定使用 OpenAI（可被 RAG_RERANK_PROVIDER 环境变量覆盖），
+        # 缺省回退到默认对话 provider，保证链路可用。
+        prov = get_provider(config.RAG_RERANK_PROVIDER or config.DEFAULT_PROVIDER) \
+            or get_provider(config.DEFAULT_PROVIDER)
         if prov is None or not prov.available():
             return None
         prompt = prompts.build_rerank_prompt(query, [c["text"][:400] for c in cands])
