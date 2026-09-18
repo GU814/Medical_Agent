@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医学问询智能体</title>
+<link rel="stylesheet" href="/static/style.css?v=20260903b">
+</head>
+<body>
+
+<!-- ============ 登录页 ============ -->
+<div id="auth-page" class="auth-page hidden">
+  <div class="auth-card">
+    <div class="auth-logo">🏥</div>
+    <h1>医学问询智能体</h1>
+    <p class="auth-sub">你的健康小笔记，安静地陪你理清身体的信号</p>
+    <div class="auth-tabs">
+      <button class="tab active" data-mode="login">登录</button>
+      <button class="tab" data-mode="register">注册</button>
+    </div>
+    <input id="auth-username" type="text" placeholder="用户名（2-32位）" autocomplete="username">
+    <input id="auth-password" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <button id="auth-submit" class="btn-primary">登录</button>
+    <p id="auth-error" class="auth-error"></p>
+    <p class="auth-tip">每次对话都只属于你一个人，资料加密存放，不和任何人混在一起</p>
+  </div>
+</div>
+
+<!-- ============ 主应用（钉钉式布局）============ -->
+<div id="app-page" class="app-page hidden">
+
+  <!-- 一级导航（深色窄栏） -->
+  <nav class="nav-rail">
+    <div class="nav-avatar" id="nav-avatar">U</div>
+    <button class="nav-icon active" data-view="chat" title="智能问诊">问诊</button>
+    <button class="nav-icon" data-view="kb" title="知识库">知识库</button>
+    <button class="nav-icon" data-view="medicine" title="拍照识药">识药</button>
+    <button class="nav-icon" data-view="reports" title="报告库">报告</button>
+    <button class="nav-icon" data-view="profile" title="健康档案">档案</button>
+    <button class="nav-icon" data-view="reminders" title="提醒闹钟">提醒</button>
+    <div class="nav-bottom">
+      <button class="nav-avatar logout" id="btn-logout" title="退出登录">U</button>
+    </div>
+  </nav>
+
+  <!-- 问诊视图 -->
+  <div class="view view-chat active" id="view-chat">
+    <!-- 二级面板：会话列表 -->
+    <aside class="conv-panel">
+      <div class="panel-header">
+        <span>问诊会话</span>
+        <span class="panel-actions">
+          <button id="btn-summarize-all" class="btn-mini" title="批量整理标题">✦</button>
+          <button id="btn-new-conv" class="btn-mini" title="新建问诊">＋</button>
+        </span>
+      </div>
+      <div class="panel-search"><input id="conv-search" type="text" placeholder="搜索会话"></div>
+      <div class="conv-list" id="conv-list"></div>
+    </aside>
+    <!-- 聊天主区 -->
+    <section class="chat-main">
+      <header class="chat-header">
+        <div class="chat-title" id="chat-title">新的问诊</div>
+        <div class="chat-tools">
+          <button id="btn-new-topic" class="btn-topic" title="开启一个全新的问诊话题">✎ 开个新话题</button>
+          <label class="model-select-label">模型
+            <select id="model-select"></select>
+          </label>
+          <button id="btn-report" class="btn-ghost">整理一份检查报告</button>
+        </div>
+      </header>
+      <div class="chat-messages" id="chat-messages">
+        <div class="empty-hint">
+          <div class="empty-icon">🌿</div>
+          <p>你好，我是你的健康小助手。<br>哪里不太舒服，慢慢跟我说说？我会陪你一步步理清楚，并参考你自己的知识库给你一些信息。</p>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <textarea id="chat-input" rows="1" placeholder="说说哪里不舒服？比如：这两天有点咳嗽、嗓子疼……（回车发送，Shift+回车换行）"></textarea>
+        <button id="btn-send" class="btn-primary btn-send">发送</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- 知识库视图 -->
+  <div class="view view-kb" id="view-kb">
+    <aside class="kb-side">
+      <div class="panel-header"><span>我的知识库</span></div>
+      <div class="kb-upload" id="kb-drop">
+        <p>📄 拖拽文件到此处，或</p>
+        <button class="btn-primary" id="btn-upload">选择文件上传</button>
+        <input type="file" id="kb-file" accept=".pdf,.docx,.md,.markdown,.txt" multiple hidden>
+        <p class="kb-hint">支持 PDF / DOCX / MD / TXT，单文件 ≤ 20MB<br>上传后自动分块并构建检索索引</p>
+      </div>
+      <div class="kb-search-box">
+        <input id="kb-test-query" type="text" placeholder="检索测试：输入关键词">
+        <button class="btn-ghost" id="btn-kb-test">检索</button>
+      </div>
+      <div class="kb-side-tip">💡 想看看知识库“脑子里”记了什么？试试「分块分析 / 检索验证 / 知识图谱」</div>
+    </aside>
+    <section class="kb-main">
+      <div class="kb-tabs">
+        <button class="kb-tab active" data-tab="docs">文档列表</button>
+        <button class="kb-tab" data-tab="chunks">分块分析</button>
+        <button class="kb-tab" data-tab="verify">检索验证</button>
+        <button class="kb-tab" data-tab="graph">知识图谱</button>
+      </div>
+
+      <!-- 文档列表 -->
+      <div class="kb-tabpanel" id="tab-docs">
+        <header class="panel-title">文档列表</header>
+        <div id="kb-test-result" class="kb-test-result hidden"></div>
+        <div class="kb-doc-list" id="kb-doc-list"></div>
+      </div>
+
+      <!-- 分块分析 -->
+      <div class="kb-tabpanel hidden" id="tab-chunks">
+        <header class="panel-title">🧩 分块与检索效果分析</header>
+        <div class="chunk-toolbar">
+          <label>文档<select id="chunk-doc-select"></select></label>
+          <label>策略<select id="chunk-strategy">
+            <option value="paragraph">按段落聚合</option>
+            <option value="sentence">按句子聚合</option>
+            <option value="fixed">定长切分</option>
+          </select></label>
+          <label>分块大小<input id="chunk-size" type="number" min="100" max="2000" step="50" value="500"></label>
+          <label>重叠<input id="chunk-overlap" type="number" min="0" max="500" step="10" value="80"></label>
+          <button class="btn-ghost" id="btn-chunk-preview">预览分块</button>
+          <button class="btn-primary" id="btn-chunk-evaluate">评估检索效果</button>
+        </div>
+        <div id="chunk-stats" class="chunk-stats"></div>
+        <div class="compare-box hidden" id="chunk-compare"></div>
+        <div class="chunk-list" id="chunk-list"></div>
+      </div>
+
+      <!-- 检索验证 -->
+      <div class="kb-tabpanel hidden" id="tab-verify">
+        <header class="panel-title">🔎 检索验证（看看存进去的内容，能不能被找出来）</header>
+        <div class="verify-toolbar">
+          <textarea id="verify-input" rows="3" placeholder="想验证哪句话能被检索到？每行写一句。留空的话，我会自动抽一些库里的句子来整体测一遍。"></textarea>
+          <div class="verify-actions">
+            <button class="btn-primary" id="btn-verify-run">运行验证</button>
+            <button class="btn-ghost" id="btn-verify-auto">自动抽样验证</button>
+            <label class="mini">抽样数<input id="verify-sample" type="number" min="5" max="100" step="5" value="30"></label>
+          </div>
+        </div>
+        <div id="verify-summary" class="verify-summary hidden"></div>
+        <div class="verify-feedback" id="verify-feedback"></div>
+        <div class="verify-list" id="verify-list"></div>
+      </div>
+
+      <!-- 知识图谱 -->
+      <div class="kb-tabpanel hidden" id="tab-graph">
+        <header class="panel-title">🕸 知识图谱（病情节点与关联）</header>
+        <div class="graph-toolbar">
+          <input id="graph-search" type="text" placeholder="查找病情节点…">
+          <button class="btn-ghost" id="btn-graph-search">定位</button>
+          <button class="btn-ghost" id="btn-graph-rebuild">重建图谱</button>
+          <span class="graph-legend">
+            <i class="lg cause"></i>可能引发
+            <i class="lg complication"></i>并发症
+            <i class="lg coexist"></i>伴随
+            <i class="lg related"></i>相关
+          </span>
+        </div>
+        <div class="graph-wrap">
+          <div class="graph-tree" id="graph-tree"></div>
+          <canvas id="graph-canvas"></canvas>
+          <aside class="graph-side" id="graph-side">
+            <div class="graph-empty">点一下某个病情节点，看看它和哪些情况相关、又可能引发什么。</div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 报告库视图 -->
+  <div class="view view-reports" id="view-reports">
+    <aside class="reports-side">
+      <div class="panel-header"><span>分类筛选</span></div>
+      <div class="report-cats" id="report-cats"></div>
+      <div class="reports-search">
+        <input id="reports-search" type="text" placeholder="搜索报告标题/主诉">
+      </div>
+    </aside>
+    <section class="reports-main">
+      <header class="panel-title">📄 医学报告库</header>
+      <div class="report-toolbar">
+        <span id="reports-count" class="reports-count"></span>
+        <span class="reports-hint">问诊时生成的报告会自己归好类存进来。</span>
+      </div>
+      <div id="reports-list" class="reports-list"></div>
+    </section>
+  </div>
+
+  <!-- 识药视图 -->
+  <div class="view view-medicine" id="view-medicine">
+    <section class="medicine-main">
+      <header class="panel-title">💊 拍照识药 / 视频识药</header>
+      <p class="medicine-tip">拍张药盒、说明书，或发一小段视频，我来认一认药名、功效和注意点，并提醒你<b>哪些药不能一起吃</b>、<b>有哪些潜在风险</b>。<br>光线亮一点、拍清楚些，结果会更准。</p>
+      <div class="medicine-mode-tabs">
+        <button class="mmtab active" data-mmode="image">📷 图片识药</button>
+        <button class="mmtab" data-mmode="video">🎬 视频识药</button>
+      </div>
+      <div class="medicine-pane" id="mpane-image">
+        <div class="medicine-upload" id="medicine-drop">
+          <img id="medicine-preview" class="hidden" alt="预览">
+          <div id="medicine-placeholder">
+            <div class="empty-icon">📷</div>
+            <p>点击选择或拖拽图片到此处</p>
+          </div>
+          <input type="file" id="medicine-file" accept="image/*" hidden>
+        </div>
+      </div>
+      <div class="medicine-pane hidden" id="mpane-video">
+        <div class="medicine-upload" id="medicine-video-drop">
+          <video id="medicine-video-preview" class="hidden" controls></video>
+          <div id="medicine-video-placeholder">
+            <div class="empty-icon">🎬</div>
+            <p>点击选择或拖拽短视频到此处（mp4/mov/webm，≤32MB）</p>
+          </div>
+          <input type="file" id="medicine-video-file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi" hidden>
+        </div>
+      </div>
+      <div class="medicine-actions">
+        <button class="btn-primary" id="btn-medicine-analyze">开始识别</button>
+        <button class="btn-ghost" id="btn-medicine-reset">重新选择</button>
+      </div>
+      <div id="medicine-result" class="medicine-result hidden"></div>
+      <div id="medicine-interactions" class="medicine-interactions hidden"></div>
+      <div id="medicine-risks" class="medicine-risks hidden"></div>
+      <div id="medicine-frames" class="medicine-frames hidden"></div>
+    </section>
+  </div>
+
+  <!-- 健康档案视图 -->
+  <div class="view view-profile" id="view-profile">
+    <aside class="profile-side">
+      <header class="panel-title">健康行为建议</header>
+      <div id="profile-suggestions" class="suggestion-list"></div>
+      <button class="btn-ghost" id="btn-refresh-suggestions">刷新建议</button>
+    </aside>
+    <section class="profile-main">
+      <header class="panel-title">📋 健康档案</header>
+      <div class="profile-form" id="profile-form">
+        <div class="form-row"><label>昵称</label><input data-field="nickname" type="text"></div>
+        <div class="form-row"><label>性别</label>
+          <select data-field="gender"><option value=""></option><option value="男">男</option><option value="女">女</option></select></div>
+        <div class="form-row"><label>出生日期</label><input data-field="birthday" type="date"></div>
+        <div class="form-row"><label>身高 (cm)</label><input data-field="height_cm" type="number"></div>
+        <div class="form-row"><label>体重 (kg)</label><input data-field="weight_kg" type="number"></div>
+        <div class="form-row"><label>血型</label>
+          <select data-field="blood_type"><option value=""></option><option>A</option><option>B</option><option>AB</option><option>O</option></select></div>
+        <div class="form-row"><label>过敏史</label><input data-field="allergies" type="text" placeholder="如：青霉素过敏"></div>
+        <div class="form-row"><label>慢性病史</label><input data-field="chronic" type="text" placeholder="如：高血压"></div>
+        <div class="form-row"><label>在服药物</label><input data-field="current_medications" type="text" placeholder="药名与频次"></div>
+        <button class="btn-primary" id="btn-save-profile">保存档案</button>
+      </div>
+      <header class="panel-title" style="margin-top:18px">近期健康记录</header>
+      <div class="record-add">
+        <select id="record-type"><option>症状</option><option>用药</option><option>体检</option><option>其他</option></select>
+        <input id="record-content" type="text" placeholder="记录内容，如：今晨血压 128/85">
+        <button class="btn-ghost" id="btn-add-record">添加</button>
+      </div>
+      <div id="record-list" class="record-list"></div>
+    </section>
+  </div>
+
+  <!-- 提醒视图 -->
+  <div class="view view-reminders" id="view-reminders">
+    <section class="reminder-main">
+      <header class="panel-title">⏰ 提醒闹钟</header>
+      <div class="reminder-add">
+        <input id="reminder-title" type="text" placeholder="提醒事项，如：服用降压药">
+        <input id="reminder-time" type="time" value="08:00">
+        <select id="reminder-repeat"><option value="daily">每天</option><option value="once">单次</option></select>
+        <input id="reminder-date" type="date" hidden>
+        <button class="btn-primary" id="btn-add-reminder">创建提醒</button>
+      </div>
+      <div id="reminder-list" class="reminder-list"></div>
+    </section>
+  </div>
+
+</div>
+
+<!-- 报告弹窗 -->
+<div id="report-modal" class="modal hidden">
+  <div class="modal-card">
+    <header class="modal-header"><span>病情检查报告单</span><button id="btn-close-report" class="btn-mini">✕</button></header>
+    <div id="report-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js?v=20260903b"></script>
+</body>
+</html>

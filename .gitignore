@@ -21,7 +21,7 @@ config.yaml
 #       本地复制后填入真实 Key，环境变量可覆盖同名配置（见 backend/app/config.py）。
 
 # ---- 迁移清理中已移出的项（备份在上级 _wxp_migration_removed_20260917/）----
-frontend/
+# frontend/ 桌面版前端是核心代码，需纳入版本控制（已从备份移回），故取消忽略
 sample_kb/
 
 # ---- 文档类（按需保留）----
