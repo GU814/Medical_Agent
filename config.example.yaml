@@ -59,4 +59,34 @@ rag:
   chunk_size: 500        # 分块字符数
   chunk_overlap: 80      # 相邻块重叠
   top_k: 6               # 每次检索召回片段数
-  min_score: 0.05        # 低于该相关度的片段不作为依据
+  min_score: 0.05        # 低于该相关度的片段不作为依据（分数已归一化到 0-1）
+
+  # ---- 混合检索增强（BM25 + 本地向量 → RRF → LLM 精排）----
+  # 本地向量模型：HuggingFace 名或本地路径；首次使用会联网下载（约 100MB）
+  embed_model: "BAAI/bge-small-zh-v1.5"
+  # 是否启用 LLM 精排（复用已配置的对话模型）
+  use_rerank: true
+  # 精排候选数：RRF 融合后取前 N 送入 LLM
+  rerank_top_n: 20
+  # RRF 倒数排名融合的平滑常数
+  rrf_k: 60
+  # 向量化批大小
+  embed_batch: 32
+
+# ---------- Critic 反思机制 ----------
+critic:
+  # 独立 critic provider 名（如 "openai" / "zhipu"）；留空则缺省复用对话模型
+  provider: ""
+  # 达标阈值（0-10，>= 该值判定通过）
+  pass_score: 7
+  # 最大反思轮数（3-5，低于阈值则重新检索+生成）
+  max_rounds: 3
+
+# ---------- 分层摘要上下文机制 ----------
+memory:
+  # 段落级摘要滚存粒度（每 N 轮滚存一段）
+  paragraph_size: 5
+  # 是否启用历史关键词检索（命中历史则参考上次对话）
+  enable_history: true
+  # 是否在上下文中注入摘要层（轮级/段落级/会话级）
+  use_summary: true

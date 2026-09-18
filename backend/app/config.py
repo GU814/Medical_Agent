@@ -129,5 +129,33 @@ CHUNK_OVERLAP = int(RAG_CFG.get("chunk_overlap", 80))
 TOP_K = int(RAG_CFG.get("top_k", 6))
 MIN_SCORE = float(RAG_CFG.get("min_score", 0.05))
 
+# ---- RAG 混合检索增强配置（环境变量 > config.yaml > 默认）----
+# 本地向量模型（HuggingFace 名或本地路径）
+RAG_EMBED_MODEL = _env("RAG_EMBED_MODEL") or RAG_CFG.get("embed_model", "BAAI/bge-small-zh-v1.5")
+# 是否启用 LLM 精排
+RAG_USE_RERANK = (_env("RAG_USE_RERANK") or str(RAG_CFG.get("use_rerank", True))).lower() in ("1", "true", "yes", "on")
+# 精排候选数（RRF 融合后取前 N 送入 LLM）
+RAG_RERANK_TOP_N = int(_env("RAG_RERANK_TOP_N") or RAG_CFG.get("rerank_top_n", 20))
+# RRF 平滑常数
+RAG_RRF_K = int(_env("RAG_RRF_K") or RAG_CFG.get("rrf_k", 60))
+# 向量化批大小
+RAG_EMBED_BATCH = int(_env("RAG_EMBED_BATCH") or RAG_CFG.get("embed_batch", 32))
+
+# ---- Critic 反思机制（环境变量 > config.yaml > 默认）----
+# 独立 critic provider 名；留空则缺省复用对话模型（get_any_provider）
+CRITIC_PROVIDER = _env("CRITIC_PROVIDER") or (CFG.get("critic") or {}).get("provider", "")
+# 达标阈值（0-10，>= 该值判定通过）
+CRITIC_PASS_SCORE = int(_env("CRITIC_PASS_SCORE") or (CFG.get("critic") or {}).get("pass_score", 7))
+# 最大反思轮数（3-5）
+CRITIC_MAX_ROUNDS = int(_env("CRITIC_MAX_ROUNDS") or (CFG.get("critic") or {}).get("max_rounds", 3))
+
+# ---- 分层摘要上下文机制（环境变量 > config.yaml > 默认）----
+# 段落级摘要滚存粒度（每 N 轮滚存一段）
+MEMORY_PARAGRAPH_SIZE = int(_env("MEMORY_PARAGRAPH_SIZE") or (CFG.get("memory") or {}).get("paragraph_size", 5))
+# 是否启用历史关键词检索
+MEMORY_ENABLE_HISTORY = (_env("MEMORY_ENABLE_HISTORY") or str((CFG.get("memory") or {}).get("enable_history", True))).lower() in ("1", "true", "yes", "on")
+# 是否在上下文中注入摘要层（轮级/段落级/会话级）
+MEMORY_USE_SUMMARY = (_env("MEMORY_USE_SUMMARY") or str((CFG.get("memory") or {}).get("use_summary", True))).lower() in ("1", "true", "yes", "on")
+
 USERS_DB = DATA_DIR / "users.db"
 SPACES_DIR = DATA_DIR / "spaces"

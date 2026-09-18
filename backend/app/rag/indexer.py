@@ -1,14 +1,21 @@
-"""索引与检索：BM25（字符 bigram + 英文词元），零外部依赖、离线可用。
+"""索引与检索：BM25 + 本地向量混合检索（RRF 融合）+ 可选 LLM 精排。
 
 索引按用户隔离存储于 kb/index.json.enc，包含全部分块与统计量。
-若配置了智谱 embedding，则在检索阶段做可选的语义加权（混合检索）。
+检索链路：
+  1. 粗排：BM25（字符 bigram + 英文词元）与本地向量余弦相似度并行打分；
+  2. RRF 倒数排名融合（替换早期 0.5/0.5 线性加权）；
+  3. 可选 LLM 精排（复用已配置的对话模型对 top-N 重排）；
+  4. 分数归一化到 [0,1] 后按 MIN_SCORE 阈值过滤。
+本地向量不可用时自动降级为纯 BM25，不影响基本检索。
 """
+import json
 import math
 import re
 from collections import Counter
 from typing import Optional
 
-from .. import config, storage
+from .. import config, prompts, storage
+from . import embedder
 
 _WORD_RE = re.compile(r"[a-zA-Z0-9]+")
 _CJK_RE = re.compile(r"[\u4e00-\u9fff]")
@@ -193,28 +200,128 @@ async def top_chunks(user_id: str, query: str, top_k: int = None) -> list[dict]:
     """检索 top_k 片段（不过滤阈值），返回带 score 的 chunk 列表。
 
     相比 search()，它保留全部 top_k 结果（含低于 MIN_SCORE 的），便于「验证命中状态」。
+    链路：BM25 + 本地向量 → RRF 融合 → 可选 LLM 精排 → 归一化到 [0,1]。
     """
     top_k = top_k or config.TOP_K
     index = get_index(user_id)
     chunks = index.get("chunks", [])
     if not chunks or not (query or "").strip():
         return []
+
+    # 路1：BM25 排序
     bm = _bm25_scores(query, index)
-    sem = await _semantic_scores(query, chunks)
+    bm_ranked = sorted(zip(bm, chunks), key=lambda x: x[0], reverse=True)
 
+    # 路2：本地向量（失败回退远程 embedding；均不可用则纯 BM25）
+    sem = await _embed_scores(query, chunks)
     if sem:
-        mx, mn = max(bm) or 1.0, min(bm)
-        rng = (mx - mn) or 1.0
-        bm_n = [(x - mn) / rng for x in bm]
-        smx, smn = max(sem), min(sem)
-        srng = (smx - smn) or 1.0
-        sem_n = [(x - smn) / srng for x in sem]
-        combined = [0.5 * a + 0.5 * b for a, b in zip(bm_n, sem_n)]
+        sem_ranked = sorted(zip(sem, chunks), key=lambda x: x[0], reverse=True)
+        fused = _rrf_fuse([bm_ranked, sem_ranked], config.RAG_RRF_K)
     else:
-        combined = bm
+        fused = bm_ranked
 
-    pairs = sorted(zip(combined, chunks), key=lambda x: x[0], reverse=True)
-    return [{**c, "score": round(float(score), 4)} for score, c in pairs[:top_k]]
+    # 可选 LLM 精排（仅当候选数多于 top_k 时有意义）
+    if config.RAG_USE_RERANK and len(fused) > top_k:
+        cands = [c for _, c in fused[:config.RAG_RERANK_TOP_N]]
+        reranked = await _llm_rerank(query, cands)
+        if reranked:
+            fused = reranked
+
+    pairs = fused[:top_k]
+    pairs = _normalize(pairs)
+    return [{**c, "score": round(float(s), 4)} for s, c in pairs]
+
+
+def _normalize(pairs: list[tuple[float, dict]]) -> list[tuple[float, dict]]:
+    """把分数 min-max 归一化到 [0,1]，使 RRF/精排/BM25 各量级统一，兼容 MIN_SCORE 阈值。"""
+    if not pairs:
+        return pairs
+    vals = [s for s, _ in pairs]
+    mx, mn = max(vals), min(vals)
+    rng = (mx - mn) or 1.0
+    return [((s - mn) / rng, c) for s, c in pairs]
+
+
+def _rrf_fuse(rank_lists: list[list[tuple[float, dict]]],
+              k: int = 60) -> list[tuple[float, dict]]:
+    """RRF 倒数排名融合：score(d) = Σ_r 1/(k + rank_r(d))。
+
+    rank_lists 每路是已按分数降序的 [(score, chunk)]。
+    返回按融合分降序的 [(fused_score, chunk)]。
+    """
+    chunk_key: dict[int, dict] = {}
+    score: dict[int, float] = {}
+    for lst in rank_lists:
+        for rank, (_, c) in enumerate(lst, 1):
+            key = id(c)
+            chunk_key[key] = c
+            score[key] = score.get(key, 0.0) + 1.0 / (k + rank)
+    return sorted(((score[key], chunk_key[key]) for key in score),
+                  key=lambda x: x[0], reverse=True)
+
+
+async def _embed_scores(query: str, chunks: list[dict]) -> Optional[list[float]]:
+    """语义打分：优先本地向量（bge/m3e），失败回退远程 embedding。"""
+    local = await _local_embed(query, chunks)
+    if local is not None:
+        return local
+    return await _semantic_scores(query, chunks)
+
+
+async def _local_embed(query: str, chunks: list[dict]) -> Optional[list[float]]:
+    """用本地 embedder 计算 query 与各 chunk 的余弦相似度；不可用返回 None。"""
+    try:
+        texts = [query] + [c["text"][:800] for c in chunks]
+        vecs = await embedder.embed_async(texts)
+        if not vecs or len(vecs) != len(texts):
+            return None
+        qv = vecs[0]
+        return [_cosine(qv, dv) for dv in vecs[1:]]
+    except Exception:
+        return None
+
+
+async def _llm_rerank(query: str, cands: list[dict]) -> Optional[list[tuple[float, dict]]]:
+    """LLM 精排：让对话模型对候选片段打 0-10 分，返回按分降序的 [(score, chunk)]。
+
+    任何异常（无模型/调用失败/解析失败）返回 None，由调用方跳过精排。
+    """
+    if not cands:
+        return None
+    try:
+        from ..llm import get_any_provider
+        prov = get_any_provider(None)
+        if prov is None or not prov.available():
+            return None
+        prompt = prompts.build_rerank_prompt(query, [c["text"][:400] for c in cands])
+        raw = await prov.chat([{"role": "user", "content": prompt}], temperature=0.0)
+        scores = _parse_rerank(raw, len(cands))
+        if scores is None:
+            return None
+        return sorted(zip(scores, cands), key=lambda x: x[0], reverse=True)
+    except Exception:
+        return None
+
+
+def _parse_rerank(raw: str, n: int) -> Optional[list[float]]:
+    """解析 LLM 返回的 JSON 数组为浮点分列表；长度不符/非法则返回 None。"""
+    if not raw:
+        return None
+    raw = raw.strip()
+    # 提取首个 [...] 片段
+    try:
+        start = raw.find("[")
+        end = raw.rfind("]")
+        if start < 0 or end < start:
+            return None
+        arr = json.loads(raw[start:end + 1])
+        if not isinstance(arr, list) or len(arr) != n:
+            return None
+        scores = [float(x) for x in arr]
+        # 校验范围 0-10，越界则归一化而非丢弃
+        return scores
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return None
 
 
 async def search(user_id: str, query: str, top_k: int = None) -> list[dict]:

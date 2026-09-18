@@ -7,3 +7,4 @@ python-docx>=1.1
 python-multipart>=0.0.9
 cryptography>=42.0
 opencv-python-headless>=4.9   # 拍照/视频识药：抽帧与图像处理（已安装，补录以保证 setup 可复现）
+sentence-transformers>=2.6   # RAG 混合检索：本地向量化（bge/m3e 等中文 embedding 模型）

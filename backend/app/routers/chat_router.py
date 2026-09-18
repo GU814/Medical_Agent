@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from .. import prompts, reports, storage, summary
+from .. import config, critic, memory, prompts, reports, storage, summary
 from ..llm import get_provider, get_any_provider
 from ..rag import indexer
 from .deps import get_current_user
@@ -67,19 +67,40 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
     prov = get_provider(body.provider) or get_provider("zhipu")
     sum_prov = get_any_provider(body.provider)  # 摘要可用任意已配置模型
 
+    def _build_messages(message: str, citations: list[dict]) -> list[dict]:
+        """组装送入生成模型的完整消息序列（含分层摘要 + 历史参考 + RAG 依据）。"""
+        sys_parts = [prompts.SYSTEM_DOCTOR]
+
+        # 分层摘要上下文（会话级 + 近期段落级）
+        summary_ctx = memory.build_summary_context(conv)
+        if summary_ctx:
+            sys_parts.append(summary_ctx)
+
+        # 历史关键词命中的相关内容（第二路上下文）
+        history_ctx = memory.build_history_context(conv, message)
+        if history_ctx:
+            sys_parts.append(history_ctx)
+
+        # RAG 知识库依据
+        sys_parts.append(prompts.build_rag_context(citations))
+
+        messages = [{"role": "system", "content": "\n\n".join(sys_parts)}]
+        for m in conv.get("messages", [])[-MAX_HISTORY:]:
+            messages.append({"role": m["role"], "content": m["content"]})
+        messages.append({"role": "user", "content": message})
+        return messages
+
+    async def _generate(message: str, citations: list[dict]) -> str:
+        """非流式生成一次完整回答（critic 循环内部使用）。"""
+        messages = _build_messages(message, citations)
+        return await prov.chat(messages, temperature=0.3)
+
     async def event_stream():
         # 1) RAG 检索（在用户自己的知识库中）
         citations = await indexer.search(user["id"], message)
-        # 2) 构建消息序列
-        history = conv.get("messages", [])[-MAX_HISTORY:]
-        messages = [{"role": "system",
-                     "content": prompts.SYSTEM_DOCTOR + "\n\n" + prompts.build_rag_context(citations)}]
-        for m in history:
-            messages.append({"role": m["role"], "content": m["content"]})
-        messages.append({"role": "user", "content": message})
 
+        # 提前把用户消息写入会话（后续 critic 重试只替换 assistant 最终答案）
         conv["messages"].append({"role": "user", "content": message})
-        # 流式过程中先给个临时标题（首条用户消息），结束后再用摘要覆盖
         if conv.get("title") in (None, "", "新的问诊"):
             conv["title"] = summary.local_title(conv["messages"])
 
@@ -87,7 +108,7 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
             {"doc_name": c["doc_name"], "chunk_idx": c["chunk_idx"] + 1,
              "snippet": (c["text"] or "")[:120]} for c in citations]})
 
-        # 3) 无可用模型：明确告知，不编造
+        # 2) 无可用模型：明确告知，不编造
         if prov is None or not prov.available():
             fallback = ("当前所选大模型未配置 API Key，暂时无法生成智能回答。"
                         "请在 config.yaml 中配置模型密钥后重试。"
@@ -100,30 +121,50 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
             yield _sse({"type": "done", "title": conv["title"]})
             return
 
-        answer_parts: list[str] = []
+        # 3) 生成 + critic 反思循环（先评后出）
+        answer = ""
+        final_citations = citations
         try:
-            async for delta in prov.stream_chat(messages):
-                answer_parts.append(delta)
-                yield _sse({"type": "delta", "content": delta})
+            current_query = message
+            for _round in range(max(1, config.CRITIC_MAX_ROUNDS)):
+                answer = await _generate(current_query, final_citations)
+                # critic 打分
+                verdict = await critic.evaluate(current_query, answer)
+                if verdict is None:
+                    # critic 不可用/解析失败：直接采纳本轮，不阻断
+                    break
+                if verdict.passed:
+                    break
+                # 未达标：带上问题重新检索+生成
+                current_query = critic.build_refine_query(message, verdict.issues)
+                new_cites = await indexer.search(user["id"], current_query)
+                if new_cites:
+                    final_citations = new_cites
+            # 兜底：若循环结束仍未拿到答案
+            if not answer.strip():
+                answer = ("模型未返回任何内容，请检查 config.yaml 中该提供方的 base_url 与 chat_model 是否正确，"
+                          "或确认中转站/官方接口当前可用。若情况紧急，请直接就医。")
         except Exception as e:
             err = f"模型调用失败：{str(e)[:300]}"
             yield _sse({"type": "error", "message": err})
-            # 模型出错也确保标题已整理（用本地兜底，避免无限“思考”后无标题）
             conv["title"] = summary.local_title(conv["messages"])
-            storage.save_conversation(user["id"], conv)  # 保留用户消息与已收到的内容
+            storage.save_conversation(user["id"], conv)
             yield _sse({"type": "done", "title": conv["title"]})
             return
 
-        answer = "".join(answer_parts)
-        if not answer.strip():
-            # 流正常结束但模型未返回任何内容（多半是中转站/模型名配置问题）
-            answer = ("模型未返回任何内容，请检查 config.yaml 中该提供方的 base_url 与 chat_model 是否正确，"
-                      "或确认中转站/官方接口当前可用。若情况紧急，请直接就医。")
-        conv["messages"].append({"role": "assistant", "content": answer, "citations": citations})
+        # 4) 输出最终答案（一次性流式推送，保持前端体验一致）
+        yield _sse({"type": "delta", "content": answer})
+        conv["messages"].append({"role": "assistant", "content": answer,
+                                 "citations": final_citations})
         conv["provider"] = prov.name
         conv["model"] = prov.chat_model()
         conv["title"] = await summary.summarize_title(conv["messages"], sum_prov)
         storage.save_conversation(user["id"], conv)
+
+        # 5) 更新分层摘要与关键词索引（异步不阻塞；异常静默）
+        await memory.update_after_turn(conv, message, answer, sum_prov)
+        storage.save_conversation(user["id"], conv)
+
         yield _sse({"type": "done", "title": conv["title"]})
 
     return StreamingResponse(event_stream(), media_type="text/event-stream",

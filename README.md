@@ -8,9 +8,11 @@
 | 模块 | 说明 |
 |---|---|
 | 用户隔离与隐私 | 每位用户独立加密数据空间（对话/档案/知识库互不串扰），JWT 鉴权 + Fernet 加密存储 |
-| 知识库 RAG | 上传 PDF/DOCX/MD/TXT → 自动分块索引 → 回答时检索相关片段作为依据，并标注引用来源 |
+| 知识库 RAG | 上传 PDF/DOCX/MD/TXT → 自动分块索引 → 混合检索（BM25 + 本地向量 → RRF 融合 → LLM 精排）作为依据，并标注引用来源 |
 | 防幻觉 | 回答严格基于知识库或问诊对话；无依据时明确回复"无法确认"，禁止编造药名/剂量/诊断 |
 | 流式问诊 | SSE 逐字输出；严谨追问（症状/病程/既往史等）；结束后自动生成病情检查报告单 |
+| 分层摘要上下文 | 三级摘要（轮级/段落级/会话级）加速检索；关键词命中历史则参考上次对话并结合当前上下文 |
+| Critic 反思 | 生成后输出前用独立 critic 模型评分，低于阈值自动重检索+重生成（3-5 轮），保证医疗回答严谨 |
 | 模型切换 | Provider 适配层（zhipu/deepseek/openai 及任意 OpenAI 兼容端点），前端可选 |
 | 健康档案与提醒 | 健康追踪 + 行为建议（多喝水/多运动/按时吃药）；用户自建提醒闹钟 |
 | 拍照识药 | 上传药物图片/说明书照片，识别药名、功效与注意事项；模糊时明确提示 |
@@ -28,6 +30,8 @@ medical-agent/
 │       ├── auth.py        # 注册/登录/JWT
 │       ├── crypto.py      # Fernet 加密（按用户派生密钥）
 │       ├── storage.py     # 用户数据空间（隔离）
+│       ├── memory.py      # 分层摘要上下文（三级摘要 + 历史关键词检索）
+│       ├── critic.py      # Critic 反思机制（生成后评分 + 重试循环）
 │       ├── rag/           # 文档解析/分块/索引/检索
 │       ├── llm/           # 模型适配层（zhipu/deepseek/openai 兼容）
 │       └── routers/       # chat(SSE)/kb/profile/reminders/vision/report
@@ -57,6 +61,17 @@ cp weapp/project.config.example.json weapp/project.config.json
 > 排除——**真实 API Key、AppSecret 绝不能提交进仓库**。
 > 也可以完全不改 `config.yaml`，直接用环境变量注入，见 `.env.example` 说明
 > （命名规则 `LLM_<PROVIDER>_API_KEY` 等，由 `backend/app/config.py` 解析）。
+
+> **混合检索的向量模型**：RAG 默认用本地中文向量模型 `BAAI/bge-small-zh-v1.5`
+> （经 `sentence-transformers` 加载），首次检索时会自动联网下载（约 100MB）。
+> 若离线/无法下载，可通过 `rag.embed_model` 或环境变量 `RAG_EMBED_MODEL` 指向本地
+> 已下载的模型目录；模型不可用时检索会自动降级为纯 BM25，不影响基本功能。
+
+> **Critic 反思与分层摘要**：默认开启。critic 缺省复用对话模型做评分，低于
+> `critic.pass_score`（默认 7）自动重检索+重生成，最多 `critic.max_rounds`（默认 3）轮；
+> 若配置了独立 `critic.provider`（或环境变量 `CRITIC_PROVIDER`），则改用该 provider 评分。
+> critic 不可用时直接采纳首轮结果，不阻断回复。分层摘要随会话加密持久化，
+> 相关参数见 `config.example.yaml` 的 `critic` / `memory` 段。
 
 ## 快速开始
 

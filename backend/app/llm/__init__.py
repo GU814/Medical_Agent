@@ -49,3 +49,17 @@ def get_any_provider(preferred: Optional[str] = None) -> Optional[LLMProvider]:
         if p.available():
             return p
     return None
+
+
+def get_critic_provider() -> Optional[LLMProvider]:
+    """返回 critic 评分用的 provider。
+
+    优先使用 config.CRITIC_PROVIDER 指定的独立 provider（若已配置且可用）；
+    否则缺省复用任意可用对话模型，保证 critic 机制可运行。
+    """
+    _init()
+    if config.CRITIC_PROVIDER:
+        p = _providers.get(config.CRITIC_PROVIDER)
+        if p and p.available():
+            return p
+    return get_any_provider(None)

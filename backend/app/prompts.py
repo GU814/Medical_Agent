@@ -87,6 +87,73 @@ SUGGESTION_PROMPT = """你是健康管理助手。根据以下用户健康档案
 """
 
 
+def build_rerank_prompt(query: str, chunks: list[str]) -> str:
+    """构造 LLM 精排提示词：要求对候选片段按相关性打 0-10 分，输出 JSON 数组。"""
+    numbered = "\n".join(f"[{i}] {t}" for i, t in enumerate(chunks, 1))
+    return (
+        "你是检索重排器。请评估以下候选片段与查询的相关性，"
+        "为每条片段打 0-10 分（10=高度相关，0=完全无关）。"
+        "只输出一个 JSON 数组，例如 [8,3,9]，数组长度必须恰好等于候选片段数量，"
+        "不要输出任何解释或额外文字。\n\n"
+        f"查询：{query}\n\n候选片段：\n{numbered}"
+    )
+
+
+CRITIC_PROMPT = """你是一名严谨的医疗审核专家，负责评审"智能问诊助手"生成的一条回答是否严谨、准确、安全、可用于面向普通用户。
+
+请从以下维度逐项评估（0-10 整数分，10=完全合格）：
+1. 准确性：是否有编造药品、剂量、检查数值、诊断结论；
+2. 依据性：涉及医学判断时是否引用了知识库/用户描述，或明确说"无法确认/建议就医"；
+3. 安全性：是否避免了可能导致用户延误就医或错误用药的表述；
+4. 完整性：是否回答了用户当前问题，追问是否恰当。
+
+请严格输出一个 JSON 对象（不要 markdown 代码块、不要任何多余文字），字段如下：
+{{"score": <0-10 整数>, "issues": ["<未达标的具体问题，达标则为空数组>"], "verdict": "<pass 或 fail>"}}
+
+其中 verdict 为 pass 当且仅当 score >= 7。
+
+待评审的问答：
+【用户问题】
+{query}
+
+【助手回答】
+{answer}
+"""
+
+
+def build_critic_prompt(query: str, answer: str) -> str:
+    """构造 critic 评分提示词。"""
+    return CRITIC_PROMPT.format(query=query, answer=answer)
+
+
+def build_turn_summary_prompt(turn_dialog: str) -> str:
+    """构造轮级摘要提示词：用一句话概括本轮问答要点。"""
+    return (
+        "你是问诊记录整理助手。请用一句话（不超过40个汉字）概括以下这一轮医患问答的要点，"
+        "聚焦用户主诉、关键症状、用药/过敏史、以及医生追问方向。只输出这句话本身，不要解释。\n\n"
+        f"{turn_dialog}"
+    )
+
+
+def build_paragraph_summary_prompt(turn_summaries: str) -> str:
+    """构造段落级摘要提示词：把若干轮摘要合并成一段。"""
+    return (
+        "你是问诊记录整理助手。请把以下若干轮问诊的要点合并成一段简洁的段落摘要（不超过120字），"
+        "保留关键症状、演变、用药史、过敏史与未决问题。只输出摘要本身。\n\n"
+        f"{turn_summaries}"
+    )
+
+
+def build_session_summary_prompt(prev_session_summary: str, paragraph_summaries: str) -> str:
+    """构造会话级滚动摘要提示词：把既有会话摘要与最新段落摘要合并。"""
+    return (
+        "你是问诊记录整理助手。请把【既有会话摘要】与【最新进展】合并成一份新的会话级累积摘要（不超过200字），"
+        "保留主诉、病程演变、关键症状、用药/过敏史、已给出的建议与未决问题。只输出摘要本身。\n\n"
+        f"【既有会话摘要】\n{prev_session_summary or '（无）'}\n\n"
+        f"【最新进展】\n{paragraph_summaries}"
+    )
+
+
 TITLE_PROMPT = """你是问诊记录整理助手。请阅读下面这段医患对话，用不超过20个汉字，提炼一个能整体概括本次问诊核心主题的会话标题。
 
 要求：
