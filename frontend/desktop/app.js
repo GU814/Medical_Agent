@@ -139,8 +139,10 @@ function renderModelSelect() {
     if (!p.available) opt.disabled = true;
     sel.appendChild(opt);
   });
+  // 优先使用后端配置的 default_provider（若可用），否则选第一个可用项
+  const preferred = state.providers.find(p => p.id === state.defaultProvider && p.available);
   const avail = state.providers.find(p => p.available);
-  sel.value = avail ? avail.id : state.defaultProvider;
+  sel.value = preferred ? preferred.id : (avail ? avail.id : state.defaultProvider);
 }
 $("#model-select").addEventListener("change", (e) => toast(`已切换模型：${e.target.selectedOptions[0].textContent}`));
 
